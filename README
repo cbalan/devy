@@ -13,7 +13,8 @@ Devy.sh build script
   * devy.sh build script it self
   * devy-meta.sh script that needs to exist under your project root dir. 
 
-devy-meta.sh file
+
+Devy-meta.sh file
 -----------------
 
  The purpose of devy-meta.sh is to describe how current project should be build.
