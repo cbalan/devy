@@ -1,0 +1,86 @@
+
+Devy.sh build script
+--------------------
+
+ I decided to use this script, instead of others, because I just wanted to:
+   * run drush easily
+   * handle overlays (ie. download archive, patch it, copy local
+     customizations and package/copy it under /var/www)
+   * easily extend it's features. (It's just a bash script)
+   * no dependencies. (It's just a bash script :) )
+
+ Devy.sh has two components:
+  * devy.sh build script it self
+  * devy-meta.sh script that needs to exist under your project root dir. 
+
+devy-meta.sh file
+-----------------
+
+ The purpose of devy-meta.sh is to describe how current project should be build.
+ This file is handled by devy.sh script, more or less, in the same manner as:
+   * apache ant is handling build.xml
+   * apache maven is handling pom.xml
+   * gnu make is handling Makefile
+   * phing is handling build.xml
+   * devy.sh is handling devy-meta.sh 
+   * etc.
+
+
+Requirements
+------------
+
+ Most of these components should be already
+ present on a regular linux box:
+   * bash
+   * mktemp
+   * which
+   * readlink
+   * wget
+   * curl
+   * tar
+   * gzip
+   * rsync
+
+
+Install devy.sh
+---------------
+Copy devy.sh somewhere in your $PATH (ie. /bin/devy.sh)
+
+
+Using devy.sh
+-------------
+ Help:
+      devy.sh --help
+
+ Building projects based on devy-meta.sh definition, assuming that
+ devy-meta.sh exists in your project's root:
+       cd /path/to/your/project/
+       devy.sh --clean --build
+
+ Packaging:
+       cd /path/to/your/project/
+       devy.sh --clean --package
+ This command will generate:
+     - target/devy-component1-{PACKAGE_VERSION}.tgz
+     - target/devy-component2-{PACKAGE_VERSION}.tgz
+ 
+ Packaging with custom PACKAGE_VERSION:
+     cd /path/to/your/project/
+     env PACKAGE_VERSION="1.5.0" ./scripts/devy.sh --clean --package
+ 
+ Development:
+  For development, feel free to use --develop flag. It will create symbolic
+  links between your dev files and build packages.
+       cd /path/to/your/project/
+       devy.sh --clean --develop --install-www
+       
+       or
+       devy.sh --install-develop
+       
+ Building under different target dir:
+       export DEVY_BUILD_TARGET='/home/devy/my-devy-build'
+       ./scripts/devy.sh --clean --develop --install-www
+  Then all your project components will be found under my-devy-build folder,
+  and /var/www will contain symliks pointing to that folder.
+  ie. /var/www/component1 -> /home/devy/my-devy-build/component1
+      /var/www/component2 -> /home/devy/my-devy-build/component2
