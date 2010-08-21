@@ -1,5 +1,5 @@
-Drupal - Magento devy project sample
-------------------------------------
+Drupal - Wordpress - Magento devy project sample
+-------------------------------------------------
 
   This project contains two major components:
     * Drupal
@@ -7,20 +7,20 @@ Drupal - Magento devy project sample
     * Magento
     
     
-Building Drupal - Magento
--------------------------
+Building Drupal - Wordpress - Magento
+-------------------------------------
  cd /path/to/drupal-magento
  devy.sh --clean --build
 
 
-Package Drupal - Magento
-------------------------
+Package Drupal - Wordpress - Magento
+------------------------------------
  cd /path/to/drupal-magento
  devy.sh --clean --package
 
 
-Setup Drupal - Magento development env
---------------------------------------
+Setup Drupal - Wordpress - Magento development env
+--------------------------------------------------
  cd /path/to/drupal-magento
  devy.sh --install-develop
   
