@@ -5,7 +5,7 @@
 PACKAGE_PREFIX=drupal-wordpress-magento
 [ -z "${PACKAGE_VERSION}" ] && PACKAGE_VERSION=$(date +%Y%m%d%H%M)
 
-DEVY_BUILD_OVERLAY_DRUPAL="drush:${DEVY_HOME}/drupal/modules/drupal-magento.make ${DEVY_HOME}/drupal"
+DEVY_BUILD_OVERLAY_DRUPAL="drush_make:${DEVY_HOME}/drupal/modules/drupal-magento.make ${DEVY_HOME}/drupal"
 DEVY_BUILD_OVERLAY_WORDPRESS="http://wordpress.org/latest.tar.gz"
 DEVY_BUILD_OVERLAY_MAGENTO="svn:http://svn.magentocommerce.com/source/branches/1.4/ ${DEVY_HOME}/magento"
 
