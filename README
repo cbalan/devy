@@ -2,8 +2,8 @@
 Devy.sh build script
 --------------------
 
- I decided to use this script, instead of others, because I just wanted to:
-   * run drush easily
+ What this script supposed to do:
+   * run drush easily(for drupal based projects)
    * handle overlays (ie. download archive, patch it, copy local
      customizations and package/copy it under /var/www)
    * easily extend it's features. (It's just a bash script)
