@@ -45,8 +45,6 @@ devy_help="Usage: devy.sh [OPTIONS] -- [WRAPPER OPTIONS]
                                    : All build arguments can be overided in ${DEVY_META}
                                    : For more details see Devy Meta section.
                                    : Build result can be found under ${DEVY_BUILD_TARGET} folder.
-  --build-drupal                   : Builds only drupal instalation
-  --build-overlays                 : Builds only the defined overlays
   --package                        : 'tar czf' build result.
   --install                        : Copy ${DEVY_BUILD_TARGET} to ${DEVY_INSTALL_TARGET}
   --install-www                    : Creates links between ${DEVY_INSTALL_TARGET} and ${DEVY_INSTALL_WEBDIR}
@@ -59,8 +57,6 @@ devy_help="Usage: devy.sh [OPTIONS] -- [WRAPPER OPTIONS]
   --help                           : Executes 'format c:\' :)
   
 Devy meta file format:
- DEVY_BUILD_DRUSH_MAKE_FILE=${DEVY_HOME}/path/to/cool.make     : If not specified, ${DEVY_BUILD_DRUSH_MAKE_FILE} will be used. 
-
  DEVY_BUILD_OVERLAY_MAGENTO='package.tgz local_folder'         : Magento overlay definition
  DEVY_BUILD_OVERLAY_{ target directory }='{List of archives/patches/folders}' : Any other overlay can be specified in this format.
 
@@ -77,10 +73,6 @@ Devy meta file format:
  # Hooks. Function name that should be called at a particular event.
  HOOK_DEVY_BUILD_PRE='function_name'
  HOOK_DEVY_BUILD_POST='function_name'
- HOOK_DEVY_BUILD_DRUPAL_PRE='function_name'
- HOOK_DEVY_BUILD_DRUPAL_POST='function_name'
- HOOK_DEVY_BUILD_OVERLAYS_PRE='function_name'
- HOOK_DEVY_BUILD_OVERLAYS_POST='function_name'
  HOOK_DEVY_BUILD_OVERLAYS_ITEM='function_name' : Overides devy_overlay method
                                                : Called for each defined overlay item
                                                : Arguments: $1-overlay, $2-overlay-target
@@ -93,10 +85,6 @@ Limitations:
   * Drush Make: Only one drush make file is supported. Use drush make includes if more files are required.
 
 Sample Devy Meta file:
-
- # This is a basic bash file. Comment lines can be prefixed with '#'.
- DEVY_BUILD_DRUSH_MAKE_FILE=\${DEVY_HOME}/drupal/modules/cool_project/cool_project.make
-
  # Overlays. Devy build script will rsync all items one on top of the next one, in that order to target/magento
  DEVY_BUILD_OVERLAY_MAGENTO='http://url-to-magento-enterprise/package.tgz custom_patch1.patch custom_patch2.patch \${DEVY_HOME}/local_magento/'
 
@@ -176,6 +164,12 @@ function devy_overlay() {
     return
   fi
   
+  if [ ${src:0:11} == "drush_make:" ]; then
+    devy_drush dl drush_make
+    devy_drush make ${src##drush_make:} ${target}
+    return
+  fi
+  
   if [ ${src:0:4} == 'http' -o ${src:0:4} == 'svn:' -o -f $src ]; then
     temp_dir=$(mktemp -d); temp_file=$(mktemp -u)
     
@@ -214,7 +208,7 @@ function devy_overlay() {
       for devfile in $devfiles; do
         destfile=$target/${devfile#$src}
         if [ ! -e $destfile -o -f $destfile -a ! $destfile -ef $devfile  ]; then
-          ln -sf $devfile $destfile
+          ln -sf $devfile ${destfile%/}
         fi
         
         i=$(($i+1)); echo -ne " $i/${devfiles_count} \r"
@@ -224,7 +218,7 @@ function devy_overlay() {
     rsync -a --exclude .svn ${src%/}/ ${target%/}/
   fi
 }
-
+ 
 function devy_build () {
   if [ -f $DEVY_META ]; then
     source $DEVY_META
@@ -235,60 +229,9 @@ function devy_build () {
     ${HOOK_DEVY_BUILD_PRE}
   fi
 
-  # Drupal build
-  devy_build_drupal
-  
-  # Overlays build
-  devy_build_overlays
-  
-  if [ -n "${HOOK_DEVY_BUILD_POST}" ]; then
-    echo "[build] executing HOOK_DEVY_BUILD_POST:${HOOK_DEVY_BUILD_POST} hook."
-    ${HOOK_DEVY_BUILD_POST}
-  fi
-}
- 
-function devy_build_drupal () {
-  if [ -f $DEVY_META ]; then
-    source $DEVY_META
-  fi
-  
-  if [ -n "${HOOK_DEVY_BUILD_DRUPAL_PRE}" ]; then
-    echo "[build-drupal] Executing HOOK_DEVY_BUILD_DRUPAL_PRE:${HOOK_DEVY_BUILD_DRUPAL_PRE} hook."
-    ${HOOK_DEVY_BUILD_DRUPAL_PRE}
-  fi
-  
-  if [ -z "${DEVY_BUILD_DRUSH_MAKE_FILE}" ]; then
-    # No drush make file defined. exiting.
-    return
-  fi
-  
-  if [ -n "$DEVY_BUILD_DRUSH_MAKE_FILE" ]; then
-    echo "[build-drupal] Building drupal using $DEVY_BUILD_DRUSH_MAKE_FILE to ${DEVY_BUILD_TARGET}/drupal"
-    devy_drush dl drush_make
-    devy_drush make $DEVY_BUILD_DRUSH_MAKE_FILE ${DEVY_BUILD_TARGET}/drupal
-  fi
-  
-  if [ -n "${HOOK_DEVY_BUILD_DRUPAL_POST}" ]; then
-    echo "[build-drupal] Executing HOOK_DEVY_BUILD_DRUPAL_POST:${HOOK_DEVY_BUILD_DRUPAL_POST} hook."
-    ${HOOK_DEVY_BUILD_DRUPAL_POST}
-  fi
-}
- 
-function devy_build_overlays () {
-  if [ -f $DEVY_META ]; then
-    source $DEVY_META
-  fi
-
-  if [ -n "${HOOK_DEVY_BUILD_OVERLAYS_PRE}" ]; then
-    echo "[build-overlays] Executing HOOK_DEVY_BUILD_OVERLAYS_PRE:${HOOK_DEVY_BUILD_OVERLAYS_PRE} hook."
-    ${HOOK_DEVY_BUILD_OVERLAYS_PRE}
-  fi
-
   for overlays in ${!DEVY_BUILD_OVERLAY_*}; do
     overlays_target=${overlays##DEVY_BUILD_OVERLAY_}
     overlays_target=${DEVY_BUILD_TARGET}/${overlays_target,,}
-    
-    mkdir -p $overlays_target
     
     echo -e "[build-overlays] Building ${overlays_target} from the following overlays:\n${!overlays}"
     for overlay in ${!overlays}; do
@@ -301,9 +244,9 @@ function devy_build_overlays () {
     done
   done
 
-  if [ -n "${HOOK_DEVY_BUILD_OVERLAYS_POST}" ]; then
-    echo "[build-overlays] Executing HOOK_DEVY_BUILD_OVERLAYS_POST:${HOOK_DEVY_BUILD_OVERLAYS_POST} hook."
-    ${HOOK_DEVY_BUILD_OVERLAYS_POST}
+  if [ -n "${HOOK_DEVY_BUILD_POST}" ]; then
+    echo "[build] executing HOOK_DEVY_BUILD_POST:${HOOK_DEVY_BUILD_POST} hook."
+    ${HOOK_DEVY_BUILD_POST}
   fi
 }
   
@@ -422,17 +365,15 @@ if [ ${0##*/} == "devy.sh" ]; then
   -l drush-install
   -l drush-uninstall
   -l build
-  -l build-overlays
-  -l build-drupal
   -l clean
   -l package
   -l install
   -l install-www
+  -l install-develop
   -l overlay:
   -l overlay-target:
   -l develop
   -l debug
-  -l install-develop
   -l help"
   
   args=$(getopt ${options} "" "$@")
@@ -447,8 +388,6 @@ if [ ${0##*/} == "devy.sh" ]; then
       --drush-install   ) actions="${actions} devy_drush_install";shift;;
       --drush-uninstall ) actions="${actions} devy_drush_uninstall";shift;;
       --build           ) actions="${actions} devy_build";shift;;
-      --build-overlays  ) actions="${actions} devy_build_overlays";shift;;
-      --build-drupal    ) actions="${actions} devy_build_drupal";shift;;
       --clean           ) actions="${actions} devy_clean";shift;;
       --package         ) actions="${actions} devy_package";shift;;
       --install         ) actions="${actions} devy_install";shift;;
@@ -475,9 +414,7 @@ if [ ${0##*/} == "devy.sh" ]; then
                                         devy_overlay_action_executed=1  
                                       fi;;
         "devy_build"            ) devy_build;;
-        "devy_build_drupal"     ) devy_build_drupal;;
         "devy_clean"            ) devy_clean;;
-        "devy_build_overlays"   ) devy_build_overlays;;
         "devy_package"          ) devy_package;;
         "devy_install"          ) devy_install;;
         "devy_install_www"      ) devy_install_www;;
