@@ -26,7 +26,7 @@
 # authors and should not be interpreted as representing official policies, either expressed
 # or implied, of Catalin Balan.
 
-[ -z "${DRUSH_SOURCE}" ] && DRUSH_SOURCE=http://ftp.drupal.org/files/projects/drush-6.x-3.1.tar.gz
+[ -z "${DRUSH_SOURCE}" ] && DRUSH_SOURCE=http://ftp.drupal.org/files/projects/drush-6.x-3.3.tar.gz
 [ -z "${DRUSH_HOME}" ] && DRUSH_HOME=/opt/drush/
 [ -z "${DEVY_HOME}" ] && DEVY_HOME=$(readlink -e ./)
 [ -z "${DEVY_BUILD_TARGET}" ] && DEVY_BUILD_TARGET=${DEVY_HOME}/target
@@ -166,7 +166,14 @@ function devy_overlay() {
   
   if [ ${src:0:11} == "drush_make:" ]; then
     devy_drush dl drush_make
-    devy_drush make ${src##drush_make:} ${target}
+    if [ -d ${target} ]; then
+      local tmp_drush_make=$(mktemp -u)
+      devy_drush make --no-core ${src##drush_make:} ${tmp_drush_make}
+      rsync -a ${tmp_drush_make%/}/ ${target%/}/
+      rm -rf ${tmp_drush_make}
+    else
+      devy_drush make ${src##drush_make:} ${target}
+    fi
     return
   fi
   
@@ -215,6 +222,7 @@ function devy_overlay() {
       done
     )
   else
+    mkdir -p ${target%/}/
     rsync -a --exclude .svn ${src%/}/ ${target%/}/
   fi
 }
