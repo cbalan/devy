@@ -163,6 +163,14 @@ function devy_overlay() {
     patch -d $target -p${DEVY_OVERLAY_PATCH_PNUM:-0} < $src
     return
   fi
+
+  if [ ${src:0:5} == "bash:" ]; then
+    local bash_command=${src##bash:}
+    bash_command=${bash_command/+/ }
+    bash_command=${bash_command/\{\}/${target}}
+    ${bash_command}
+    return
+  fi
   
   if [ ${src:0:11} == "drush_make:" ]; then
     devy_drush dl drush_make
