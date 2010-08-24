@@ -245,6 +245,8 @@ function devy_build () {
     ${HOOK_DEVY_BUILD_PRE}
   fi
 
+  mkdir -p ${DEVY_BUILD_TARGET}
+
   for overlays in ${!DEVY_BUILD_OVERLAY_*}; do
     overlays_target=${overlays##DEVY_BUILD_OVERLAY_}
     overlays_target=${DEVY_BUILD_TARGET}/${overlays_target,,}
